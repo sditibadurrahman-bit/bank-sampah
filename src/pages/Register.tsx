@@ -45,7 +45,9 @@ export default function Register() {
     try {
       const isSuperAdmin = currentUser.email === 'sditibadurrahman@gmail.com';
       const userRef = doc(db, 'users', currentUser.uid);
-      await setDoc(userRef, {
+      console.log('DEBUG: Registering user to Firestore...', currentUser.uid, formData);
+      
+      const userData = {
         id: currentUser.uid,
         name: formData.name,
         address: formData.address,
@@ -54,10 +56,14 @@ export default function Register() {
         role: isSuperAdmin ? 'admin' : 'nasabah',
         balance: 0,
         joinDate: new Date().toISOString(),
-        isActive: isSuperAdmin ? true : false, // Menunggu persetujuan admin jika bukan super admin
+        isActive: isSuperAdmin ? true : false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      });
+      };
+      
+      console.log('DEBUG: User data payload:', userData);
+      await setDoc(userRef, userData);
+      console.log('DEBUG: Registration finished successfully!');
       
       if (isSuperAdmin) {
         setSuccess('Pendaftaran Admin berhasil! Mengalihkan ke dashboard...');

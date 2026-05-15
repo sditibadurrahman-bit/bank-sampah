@@ -19,11 +19,16 @@ export default function DataNasabah() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'users'), where('role', '==', 'nasabah'));
+    // Show ALL users for debugging purposes
+    const q = query(collection(db, 'users'));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log('--- DB DEBUG: DataNasabah snapshot received ---');
+      console.log('Snapshot size:', snapshot.size);
+      console.log('Snapshot docs:', snapshot.docs.map(d => d.id));
       const users: User[] = [];
       snapshot.forEach((doc) => {
+        console.log('Doc ID:', doc.id, 'Data:', doc.data());
         users.push({ id: doc.id, ...doc.data() } as User);
       });
       setNasabah(users);

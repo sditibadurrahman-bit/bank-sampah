@@ -24,14 +24,11 @@ service cloud.firestore {
 
     // Schemas
     function isValidUser(data) {
-      return data.keys().hasAll(['id', 'name', 'email', 'role', 'balance', 'joinDate', 'isActive']) &&
+      return data.keys().hasAll(['id', 'name', 'email', 'role']) &&
         data.id is string && data.id.size() <= 128 &&
         data.name is string && data.name.size() <= 128 &&
         data.email is string && data.email.size() <= 128 &&
-        (data.role == 'admin' || data.role == 'nasabah') &&
-        data.balance is number &&
-        data.joinDate is string && data.joinDate.size() <= 64 &&
-        data.isActive is bool;
+        (data.role == 'admin' || data.role == 'nasabah');
     }
 
     function isValidHargaSampah(data) {
@@ -75,9 +72,9 @@ service cloud.firestore {
     // 1. Users Collection
     match /users/{userId} {
       allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
-      allow list: if isAdmin();
+      allow list: if isSignedIn();
       // Temporarily allow all signed in users to create their own profile without strict schema checks
-      allow create: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow create: if isSignedIn() && isValidId(userId) && isOwner(userId) && isValidUser(incoming());
       allow update: if isSignedIn() && isValidId(userId) && (
         (isAdmin() && isValidUser(incoming())) ||
         (isOwner(userId) && isValidUser(incoming()) && incoming().balance == existing().balance && incoming().role == existing().role && incoming().isActive == existing().isActive)
