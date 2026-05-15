@@ -44,7 +44,7 @@ export default function AdminDashboard() {
         const hargaSnap = await getDocs(collection(firestore, 'hargaSampah'));
         const hData: Record<string, HargaSampah> = {};
         hargaSnap.forEach(doc => {
-          hData[doc.id] = doc.data() as HargaSampah;
+          hData[doc.id] = { id: doc.id, ...doc.data() } as HargaSampah;
         });
         setHargaData(hData);
 
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
         const penjualanSnap = await getDocs(collection(firestore, 'penjualan'));
         let totalPenjualanCalc = 0;
         penjualanSnap.forEach(doc => {
-          const p = doc.data() as Penjualan;
+          const p = { id: doc.id, ...doc.data() } as Penjualan;
           totalPenjualanCalc += p.total || 0;
         });
 

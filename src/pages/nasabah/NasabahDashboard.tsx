@@ -28,7 +28,7 @@ export default function NasabahDashboard() {
         const hargaSnap = await getDocs(collection(db, 'hargaSampah'));
         const hargaMap: Record<string, HargaSampah> = {};
         hargaSnap.forEach(h => {
-          hargaMap[h.id] = h.data() as HargaSampah;
+          hargaMap[h.id] = { id: h.id, ...h.data() } as HargaSampah;
         });
         setHargaData(hargaMap);
 
@@ -42,7 +42,7 @@ export default function NasabahDashboard() {
         const penarikanQ = query(collection(db, 'penarikan'), where('userId', '==', currentUser.id), where('status', '==', 'approved'));
         const penarikanSnap = await getDocs(penarikanQ);
         const myPenarikan: Penarikan[] = [];
-        penarikanSnap.forEach(doc => myPenarikan.push(doc.data() as Penarikan));
+        penarikanSnap.forEach(doc => myPenarikan.push({ id: doc.id, ...doc.data() } as Penarikan));
 
         const totalSetoran = mySetoran.reduce((sum, s) => sum + s.subtotal, 0);
         const totalPenarikan = myPenarikan.reduce((sum, p) => sum + p.amount, 0);

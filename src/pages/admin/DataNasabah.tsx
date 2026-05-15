@@ -8,6 +8,15 @@ export default function DataNasabah() {
   const [nasabah, setNasabah] = useState<User[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [firebaseError, setFirebaseError] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    address: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'users'), where('role', '==', 'nasabah'));
@@ -15,12 +24,15 @@ export default function DataNasabah() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const users: User[] = [];
       snapshot.forEach((doc) => {
-        users.push(doc.data() as User);
+        users.push({ id: doc.id, ...doc.data() } as User);
       });
       setNasabah(users);
       setLoading(false);
+      setFirebaseError(null);
     }, (error) => {
+      console.error("DATA NASABAH LIST ERROR:", error);
       handleFirestoreError(error, OperationType.LIST, 'users');
+      setFirebaseError(error.message);
       setLoading(false);
     });
 
@@ -39,10 +51,46 @@ export default function DataNasabah() {
     }
   };
 
-  const filteredData = nasabah.filter(n => 
-    n.name.toLowerCase().includes(search.toLowerCase()) || 
-    n.id.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleAddNasabah = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setFirebaseError(null);
+    try {
+      const newRef = doc(collection(db, 'users'));
+      const newUser = {
+        id: newRef.id,
+        name: formData.name,
+        email: formData.email || '',
+        phone: formData.phone || '',
+        address: formData.address || '',
+        role: 'nasabah',
+        balance: 0,
+        joinDate: new Date().toISOString(),
+        isActive: true, // Manual add is automatically active
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      // We use setDoc here to actually create it!
+      const { setDoc } = await import('firebase/firestore');
+      await setDoc(newRef, newUser);
+      setShowAddForm(false);
+      setFormData({ name: '', phone: '', email: '', address: '' });
+      alert('Nasabah berhasil ditambahkan!');
+    } catch (error: any) {
+      console.error(error);
+      setFirebaseError(error.message || String(error));
+      handleFirestoreError(error, OperationType.CREATE, 'users');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const filteredData = nasabah.filter(n => {
+    const nameStr = n.name || '';
+    const idStr = n.id || '';
+    return nameStr.toLowerCase().includes(search.toLowerCase()) || 
+           idStr.toLowerCase().includes(search.toLowerCase());
+  });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
@@ -63,9 +111,49 @@ export default function DataNasabah() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <button 
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="px-4 py-2 bg-emerald-600 text-white rounded-xl shadow-sm hover:bg-emerald-700 transition font-medium text-sm"
+        >
+          {showAddForm ? 'Batal Tambah' : '+ Tambah Nasabah'}
+        </button>
       </div>
 
+      {showAddForm && (
+        <div className="p-6 border-b border-slate-100 bg-emerald-50/30">
+          <h3 className="text-lg font-bold text-slate-800 mb-4">Tambah Nasabah Baru</h3>
+          <form onSubmit={handleAddNasabah} className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>
+              <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Email <span className="font-normal text-slate-400">(Opsional)</span></label>
+              <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">No. HP / WhatsApp <span className="font-normal text-slate-400">(Opsional)</span></label>
+              <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Alamat <span className="font-normal text-slate-400">(Opsional)</span></label>
+              <input type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" />
+            </div>
+            <div className="md:col-span-2 pt-2">
+              <button disabled={isSubmitting} type="submit" className="w-full sm:w-auto px-6 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50">
+                {isSubmitting ? 'Menyimpan...' : 'Simpan Nasabah'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
+        {firebaseError && (
+          <div className="p-4 bg-red-100 text-red-800 border-b border-red-200 text-sm font-medium">
+            Error loading data: {firebaseError}
+          </div>
+        )}
         <table className="w-full text-sm text-left">
           <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 tracking-wider">
             <tr>

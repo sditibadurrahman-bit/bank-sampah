@@ -77,9 +77,12 @@ service cloud.firestore {
       allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
       allow list: if isAdmin();
       // Allow specific email to be registered directly as admin
-      allow create: if isSignedIn() && isOwner(userId) && isValidUser(incoming()) && (
-        incoming().role == 'nasabah' || 
-        (incoming().role == 'admin' && request.auth.token.email == 'sditibadurrahman@gmail.com')
+      allow create: if isSignedIn() && (
+        (isOwner(userId) && isValidUser(incoming()) && (
+          incoming().role == 'nasabah' || 
+          (incoming().role == 'admin' && request.auth.token.email == 'sditibadurrahman@gmail.com')
+        )) ||
+        (isAdmin() && isValidUser(incoming()))
       );
       allow update: if isSignedIn() && isValidId(userId) && (
         (isAdmin() && isValidUser(incoming())) ||

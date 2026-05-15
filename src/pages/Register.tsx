@@ -73,7 +73,7 @@ export default function Register() {
       }
     } catch (err: any) {
       console.error(err);
-      setError('Gagal melengkapi profil. Silakan coba lagi.');
+      setError(`Gagal melengkapi profil. Silakan coba lagi. Error: ${err.message || String(err)}`);
       handleFirestoreError(err, OperationType.CREATE, `users/${currentUser.uid}`);
     } finally {
       setIsSubmitting(false);
