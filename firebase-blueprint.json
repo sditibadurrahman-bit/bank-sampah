@@ -1,0 +1,106 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "App user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "nasabah"] },
+        "balance": { "type": "number" },
+        "joinDate": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role", "balance", "joinDate", "isActive"]
+    },
+    "HargaSampah": {
+      "title": "HargaSampah",
+      "description": "Trash Price List",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "pricePerKg": { "type": "number" },
+        "lastUpdate": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["code", "name", "category", "pricePerKg", "lastUpdate"]
+    },
+    "Setoran": {
+      "title": "Setoran",
+      "description": "Trash Deposit Record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "sampahId": { "type": "string" },
+        "weight": { "type": "number" },
+        "pricePerKg": { "type": "number" },
+        "subtotal": { "type": "number" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "sampahId", "weight", "pricePerKg", "subtotal", "date"]
+    },
+    "Penarikan": {
+      "title": "Penarikan",
+      "description": "Withdrawal Record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string" },
+        "notes": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "amount", "method", "date", "status"]
+    },
+    "Penjualan": {
+      "title": "Penjualan",
+      "description": "Sales Record to Collector",
+      "type": "object",
+      "properties": {
+        "pengepulName": { "type": "string" },
+        "sampahId": { "type": "string" },
+        "weight": { "type": "number" },
+        "pricePerKg": { "type": "number" },
+        "total": { "type": "number" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["pengepulName", "sampahId", "weight", "pricePerKg", "total", "date"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "Stores user profiles"
+    },
+    "hargaSampah/{hargaId}": {
+      "schema": { "$ref": "HargaSampah" },
+      "description": "Prices of trash by category"
+    },
+    "setoran/{setoranId}": {
+      "schema": { "$ref": "Setoran" },
+      "description": "Deposit records. Modifying these alters the user's balance."
+    },
+    "penarikan/{penarikanId}": {
+      "schema": { "$ref": "Penarikan" },
+      "description": "Withdrawals by nasabah. Modifying these alters user balance."
+    },
+    "penjualan/{penjualanId}": {
+      "schema": { "$ref": "Penjualan" },
+      "description": "Admin sales to collectors"
+    }
+  }
+}

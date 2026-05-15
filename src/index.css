@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #f8fafc;
+  color: #0f172a;
+  user-select: none; /* Mencegah seleksi teks global */
+}
+
+.watermark-bg {
+  position: relative;
+}
+
+.watermark-bg::before {
+  content: "ECOBANK SECURED";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  font-size: 8rem;
+  font-weight: 900;
+  color: rgba(16, 185, 129, 0.03); /* Sangat tipis */
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 0;
+  width: 200%;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+input, textarea {
+  user-select: text; /* Tetap izinkan input di kolom teks */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+.font-number {
+  font-family: var(--font-mono);
+}
+
+/* Print Utilities */
+@media print {
+  body {
+    background: white;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-container {
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white;
+  }
+}
+

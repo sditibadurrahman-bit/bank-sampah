@@ -1,0 +1,126 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // Schemas
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'role', 'balance', 'joinDate', 'isActive']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.name is string && data.name.size() <= 128 &&
+        data.email is string && data.email.size() <= 128 &&
+        (data.role == 'admin' || data.role == 'nasabah') &&
+        data.balance is number &&
+        data.joinDate is string && data.joinDate.size() <= 64 &&
+        data.isActive is bool;
+    }
+
+    function isValidHargaSampah(data) {
+      return data.keys().hasAll(['code', 'name', 'category', 'pricePerKg', 'lastUpdate']) &&
+        data.code is string && data.code.size() <= 32 &&
+        data.name is string && data.name.size() <= 128 &&
+        data.category is string && data.category.size() <= 64 &&
+        data.pricePerKg is number &&
+        data.lastUpdate is string && data.lastUpdate.size() <= 64;
+    }
+
+    function isValidSetoran(data) {
+       return data.keys().hasAll(['userId', 'sampahId', 'weight', 'pricePerKg', 'subtotal', 'date']) &&
+        data.userId is string && data.userId.size() <= 128 &&
+        data.sampahId is string && data.sampahId.size() <= 128 &&
+        data.weight is number &&
+        data.pricePerKg is number &&
+        data.subtotal is number &&
+        data.date is string && data.date.size() <= 64;
+    }
+
+    function isValidPenarikan(data) {
+       return data.keys().hasAll(['userId', 'amount', 'method', 'status', 'date']) &&
+        data.userId is string && data.userId.size() <= 128 &&
+        data.amount is number &&
+        data.method is string && data.method.size() <= 64 &&
+        (data.status == 'pending' || data.status == 'approved' || data.status == 'rejected') &&
+        data.date is string && data.date.size() <= 64;
+    }
+
+    function isValidPenjualan(data) {
+       return data.keys().hasAll(['pengepulName', 'sampahId', 'weight', 'pricePerKg', 'total', 'date']) &&
+        data.pengepulName is string && data.pengepulName.size() <= 128 &&
+        data.sampahId is string && data.sampahId.size() <= 128 &&
+        data.weight is number &&
+        data.pricePerKg is number &&
+        data.total is number &&
+        data.date is string && data.date.size() <= 64;
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      // Allow specific email to be registered directly as admin
+      allow create: if isSignedIn() && isOwner(userId) && isValidUser(incoming()) && (
+        incoming().role == 'nasabah' || 
+        (incoming().role == 'admin' && request.auth.token.email == 'sditibadurrahman@gmail.com')
+      );
+      allow update: if isSignedIn() && isValidId(userId) && (
+        (isAdmin() && isValidUser(incoming())) ||
+        (isOwner(userId) && isValidUser(incoming()) && incoming().balance == existing().balance && incoming().role == existing().role && incoming().isActive == existing().isActive)
+      );
+    }
+
+    // 2. HargaSampah Collection
+    match /hargaSampah/{hargaId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() && isValidHargaSampah(incoming());
+      allow update: if isAdmin() && isValidId(hargaId) && isValidHargaSampah(incoming());
+      allow delete: if isAdmin() && isValidId(hargaId);
+    }
+
+    // 3. Setoran
+    match /setoran/{setoranId} {
+      allow get: if isSignedIn() && isValidId(setoranId) && (isAdmin() || isOwner(existing().userId));
+      allow list: if isSignedIn() && (
+        // Client must query using userId == request.auth.uid if not admin, but rules must enforce:
+        (isAdmin() || resource.data.userId == request.auth.uid)
+      );
+      allow create: if isAdmin() && isValidSetoran(incoming());
+    }
+
+    // 4. Penarikan
+    match /penarikan/{penarikanId} {
+      allow get: if isSignedIn() && isValidId(penarikanId) && (isAdmin() || isOwner(existing().userId));
+      allow list: if isSignedIn() && (
+        (isAdmin() || resource.data.userId == request.auth.uid)
+      );
+      // Nasabah can create pending penarikan
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidPenarikan(incoming()) && incoming().status == 'pending';
+      // Admin can update status
+      allow update: if isAdmin() && isValidPenarikan(incoming());
+    }
+
+    // 5. Penjualan
+    match /penjualan/{penjualanId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidPenjualan(incoming());
+    }
+  }
+}
